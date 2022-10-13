@@ -30,13 +30,13 @@ const Home = () => {
   };
 
   const setup = async () => {
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
-    await api.rpc.chain.subscribeNewHeads((lastHeader) => {
-      setBlock(lastHeader.number.toNumber());
-      setLastBlockHash(lastHeader.hash.toString());
-    });
-    setApi(api);
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    // await api.rpc.chain.subscribeNewHeads((lastHeader) => {
+    //   setBlock(lastHeader.number.toNumber());
+    //   setLastBlockHash(lastHeader.hash.toString());
+    // });
+    // setApi(api);
     await extensionSetup();
   };
 
@@ -45,9 +45,12 @@ const Home = () => {
 
   const deployContract = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    setApi(api);
     const contractWasm = contract_file.source.wasm;
     const contract = new CodePromise(api, abi, contractWasm);
-    const initValue = true;
+    const initValue = false;
     console.log("contract is :", contract);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
@@ -63,6 +66,7 @@ const Home = () => {
           setResult("finalized");
           address = contract.address.toString();
           setContractAddress(address);
+          api.disconnect();
           unsub();
         }
       }
@@ -70,7 +74,10 @@ const Home = () => {
   };
 
   const getFlipValue = async () => {
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
     const contract = new ContractPromise(api, abi, contractAddress);
+    setApi(api);
     const { gasConsumed, result, output } = await contract.query.get(
       actingAddress,
       { value: 0, gasLimit: -1 }
@@ -80,6 +87,7 @@ const Home = () => {
     if (output !== undefined && output !== null) {
       setOutcome(output.toHuman()?.toString() ?? "");
     }
+    api.disconnect();
   };
 
   // const subscribeAccount =async () => {
@@ -108,16 +116,22 @@ const Home = () => {
 
   const changeFlipValue = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    setApi(api);
+
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
     const flip = await contract.tx.flip({ value: 0, gasLimit: -1 });
     if (injector !== undefined) {
-      flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
+      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
         if (result.status.isInBlock) {
           setResult("in a block");
         } else if (result.status.isFinalized) {
           setResult("finalized");
+          unsub();
+          api.disconnect();
         }
       });
     }
@@ -125,21 +139,56 @@ const Home = () => {
 
   const add_test_data = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    setApi(api);
+
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
     const flip = await contract.tx.addTestData(
-      { value: 0, gasLimit: -1 },
+      { value: 0, gasLimit: gasLimit },
       actingAddress,
       0
     );
     if (injector !== undefined) {
-      flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
+      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
         if (result.status.isInBlock) {
           setResult("in a block");
         } else if (result.status.isFinalized) {
           setResult("finalized");
+          unsub();
+          api.disconnect();
         }
+      });
+    }
+  };
+
+  const own_error_test = async () => {
+    const { web3FromSource } = await import("@polkadot/extension-dapp");
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    setApi(api);
+
+    const contract = new ContractPromise(api, abi, contractAddress);
+    const performingAccount = accounts[0];
+    const injector = await web3FromSource(performingAccount.meta.source);
+    const flip = await contract.tx.ownErrorTest(
+      { value: 0, gasLimit: gasLimit },
+      actingAddress,
+      0
+    );
+    if (injector !== undefined) {
+      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ({ events = [], status } ) => {
+        if (status.isInBlock) {
+          setResult("in a block");
+        } else if (status.isFinalized) {
+          setResult("finalized");
+          console.log("### show events:",events);
+          unsub();
+          api.disconnect();
+        }
+        console.log("###result: ",status);
       });
     }
   };
@@ -286,6 +335,19 @@ const Home = () => {
             ? "add test value!"
             : "Couldn't load API or contract address is invalid, please see logs in console."}
         </button>
+        <br />
+        <br />
+        <button
+          className="bg-green-900 hover:bg-green-800 text-white rounded px-4 py-2"
+          disabled={!api || !contractAddress}
+          onClick={own_error_test}
+        >
+          {api && contractAddress
+            ? "own error test"
+            : "Couldn't load API or contract address is invalid, please see logs in console."}
+        </button>
+        <br />
+        <br />
         <div>Result: {result}</div>
         <div>Outcome: {outcome}</div>
         <div>Gas consumed: {gasConsumed}</div>

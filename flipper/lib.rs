@@ -8,6 +8,7 @@ mod flipper {
     use ink_storage::traits::{PackedLayout, SpreadLayout};
     use openbrush::{storage::Mapping, traits::Storage};
     use ink_prelude::{vec,vec::Vec};
+    use ink_prelude::string::{String, ToString};
 
     #[derive(
         Debug, PartialEq, Eq, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout,
@@ -25,7 +26,23 @@ mod flipper {
         token_type: TokenType,
         token_address: AccountId,
     }
-    
+
+    #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub enum OwnErrors {
+        /// The Token Does Not Exists.
+        OwnErrorIsOccured,
+    }
+
+    #[ink(event)]
+    pub struct OwnErrorIsOccured {
+        #[ink(topic)]
+        caller:AccountId,
+        message: String,
+    }
+
+    pub type OwnResult<T> = core::result::Result<T, OwnErrors>;
+
     /// Defines the storage of your contract.
     /// Add new fields to the below struct in order
     /// to add new static storage fields to your contract.
@@ -84,6 +101,17 @@ mod flipper {
                 }
             }
             result
+        }
+
+        #[ink(message)]
+        pub fn own_error_test(&mut self, account_id:AccountId, token_type:u8) -> OwnResult<()> {
+            if self.value == false {
+                self.env().emit_event(OwnErrorIsOccured{caller:self.env().caller(), message:"error is occurd.".to_string()});
+                return Err(OwnErrors::OwnErrorIsOccured);
+            }
+            self.token_list_for_id.insert(&self.next_id, &TokenInfo{token_address:account_id,token_type:TokenType::GovernanceToken});
+            self.next_id = self.next_id + 1;
+            Ok(())
         }
 
     }
