@@ -184,7 +184,13 @@ const Home = () => {
           setResult("in a block");
         } else if (status.isFinalized) {
           setResult("finalized");
-          console.log("### show events:",events);
+          // console.log("### show events:",events);
+          events.forEach(({ phase, event:{data}}) => {
+            console.log("### data.methhod:",data.method);
+            if (data.method == "ExtrinsicFailed"){
+              alert("Transaction is failure.");
+            }
+          });
           unsub();
           api.disconnect();
         }
