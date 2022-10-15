@@ -1,14 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(min_specialization)]
 
-
 #[openbrush::contract]
 mod flipper {
+    use ink_prelude::string::{String, ToString};
+    use ink_prelude::{vec, vec::Vec};
     use ink_storage::traits::StorageLayout;
     use ink_storage::traits::{PackedLayout, SpreadLayout};
     use openbrush::{storage::Mapping, traits::Storage};
-    use ink_prelude::{vec,vec::Vec};
-    use ink_prelude::string::{String, ToString};
 
     #[derive(
         Debug, PartialEq, Eq, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout,
@@ -35,9 +34,10 @@ mod flipper {
     }
 
     #[ink(event)]
-    pub struct OwnErrorIsOccured {
+    pub struct EventTest {
         #[ink(topic)]
-        caller:AccountId,
+        caller: Option<AccountId>,
+        is_transaction_succeed: bool,
         message: String,
     }
 
@@ -51,14 +51,18 @@ mod flipper {
         /// Stores a single `bool` value on the storage.
         value: bool,
         token_list_for_id: Mapping<u128, TokenInfo>,
-        next_id:u128,
+        next_id: u128,
     }
 
     impl Flipper {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new(init_value: bool) -> Self {
-            Self { value: init_value, token_list_for_id:Mapping::default(), next_id:0, }
+            Self {
+                value: init_value,
+                token_list_for_id: Mapping::default(),
+                next_id: 0,
+            }
         }
 
         /// Constructor that initializes the `bool` value to `false`.
@@ -84,17 +88,21 @@ mod flipper {
         }
 
         #[ink(message)]
-        pub fn add_test_data(&mut self, account_id:AccountId, token_type:u8) {
-
-            self.token_list_for_id.insert(&self.next_id, &TokenInfo{token_address:account_id,token_type:TokenType::GovernanceToken});
+        pub fn add_test_data(&mut self, account_id: AccountId, token_type: u8) {
+            self.token_list_for_id.insert(
+                &self.next_id,
+                &TokenInfo {
+                    token_address: account_id,
+                    token_type: TokenType::GovernanceToken,
+                },
+            );
             self.next_id = self.next_id + 1;
         }
 
-
         #[ink(message)]
-        pub fn get_test_list(&self, test_param:u128) -> Vec<TokenInfo> {
-            let mut result:Vec<TokenInfo> = Vec::new();
-            for  i in 0..self.next_id {
+        pub fn get_test_list(&self, test_param: u128) -> Vec<TokenInfo> {
+            let mut result: Vec<TokenInfo> = Vec::new();
+            for i in 0..self.next_id {
                 match self.token_list_for_id.get(&i) {
                     Some(value) => result.push(value.clone()),
                     None => (),
@@ -104,16 +112,30 @@ mod flipper {
         }
 
         #[ink(message)]
-        pub fn own_error_test(&mut self, account_id:AccountId, token_type:u8) -> OwnResult<()> {
+        pub fn own_error_test(&mut self, account_id: AccountId, token_type: u8) -> OwnResult<()> {
             if self.value == false {
-                self.env().emit_event(OwnErrorIsOccured{caller:self.env().caller(), message:"error is occurd.".to_string()});
+                Self::env().emit_event(EventTest {
+                    caller: Some(self.env().caller()),
+                    is_transaction_succeed: false,
+                    message: "error is occurd.".to_string(),
+                });
                 return Err(OwnErrors::OwnErrorIsOccured);
             }
-            self.token_list_for_id.insert(&self.next_id, &TokenInfo{token_address:account_id,token_type:TokenType::GovernanceToken});
+            self.token_list_for_id.insert(
+                &self.next_id,
+                &TokenInfo {
+                    token_address: account_id,
+                    token_type: TokenType::GovernanceToken,
+                },
+            );
             self.next_id = self.next_id + 1;
+            Self::env().emit_event(EventTest {
+                caller: Some(self.env().caller()),
+                is_transaction_succeed: true,
+                message: "transaction is succeed".to_string(),
+            });
             Ok(())
         }
-
     }
 
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { ApiPromise, Keyring, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
-import { ContractPromise, CodePromise } from "@polkadot/api-contract";
+import { ContractPromise, CodePromise,Abi } from "@polkadot/api-contract";
 import abi from "../change_with_your_own_metadata.json";
 import contract_file from "../flipper.contract.json";
+import { numberToHex } from '@polkadot/util';
 
 const Home = () => {
   const [block, setBlock] = useState(0);
@@ -41,7 +42,32 @@ const Home = () => {
   };
 
   const gasLimit = 100000 * 1000000;
+  const gasLimit_1 = numberToHex(21000);
   const storageDepositLimit = null;
+
+  // const deployContract = async () => {
+  //   const { web3FromSource } = await import("@polkadot/extension-dapp");
+  //   const keyring = new Keyring({ type: 'sr25519' });
+  //   const alicePair = keyring.addFromUri('//Alice', { name: 'Alice default' });
+  //   const caller = keyring.addFromAddress("actingAddress");
+  //   const wsProvider = new WsProvider(blockchainUrl);
+  //   const api = await ApiPromise.create({ provider: wsProvider });
+  //   setApi(api);
+  //   const contractWasm = contract_file.source.wasm;
+  //   const code = new CodePromise(api, abi, contractWasm);
+  //   const initValue = false;
+  //   console.log("contract is :", code);
+  //   const performingAccount = accounts[0];
+  //   const injector = await web3FromSource(performingAccount.meta.source);
+  //   const tx = code.tx.new({ gasLimit, storageDepositLimit }, initValue)
+  //   let address;
+  //   const unsub = await tx.signAndSend(alicePair, ({ contract, status }) => {
+  //     if (status.isInBlock || status.isFinalized) {
+  //       address = contract.address.toString();
+  //       unsub();
+  //     }
+  //   });
+  // };
 
   const deployContract = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
@@ -182,19 +208,32 @@ const Home = () => {
       const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ({ events = [], status } ) => {
         if (status.isInBlock) {
           setResult("in a block");
+          // events.forEach(({ event}) => {
+          //   if (api.events.contracts.ContractEmitted.is(event)) {
+          //     console.log("### event.data:",event.data);
+          //     const [account_id, contract_evt] = event.data;
+          //     const decoded = new Abi(abi).decodeEvent(contract_evt);
+          //     console.log("### decoded:",decoded);
+          //   }
+          // });
         } else if (status.isFinalized) {
           setResult("finalized");
-          // console.log("### show events:",events);
-          events.forEach(({ phase, event:{data}}) => {
-            console.log("### data.methhod:",data.method);
-            if (data.method == "ExtrinsicFailed"){
+          events.forEach(({ event}) => {
+            if (api.events.contracts.ContractEmitted.is(event)) {
+              console.log("### event.data:",event.data);
+              const [account_id, contract_evt] = event.data;
+              const decoded = new Abi(abi).decodeEvent(contract_evt);
+              console.log(decoded);
+            }
+            console.log("### data.methhod:",event.data.method);
+            if (event.data.method == "ExtrinsicFailed"){
               alert("Transaction is failure.");
             }
           });
           unsub();
           api.disconnect();
         }
-        console.log("###result: ",status);
+        //console.log("###result: ",status);
       });
     }
   };
