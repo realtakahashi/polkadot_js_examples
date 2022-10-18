@@ -5,6 +5,8 @@ import { ContractPromise, CodePromise,Abi } from "@polkadot/api-contract";
 import abi from "../change_with_your_own_metadata.json";
 import contract_file from "../flipper.contract.json";
 import { numberToHex } from '@polkadot/util';
+import { Weight } from "@polkadot/types/interfaces";
+import { U64, u64, UInt } from "@polkadot/types";
 
 const Home = () => {
   const [block, setBlock] = useState(0);
@@ -41,7 +43,11 @@ const Home = () => {
     await extensionSetup();
   };
 
-  const gasLimit = 100000 * 1000000;
+  
+
+ const gasLimit = 100000 * 1000000;
+  // const BN = require('bn.js');
+  // const gasLimit:u64 = new BN(parseInt('100000000000'),10).u64;
   const gasLimit_1 = numberToHex(21000);
   const storageDepositLimit = null;
 
@@ -223,7 +229,8 @@ const Home = () => {
               console.log("### event.data:",event.data);
               const [account_id, contract_evt] = event.data;
               const decoded = new Abi(abi).decodeEvent(contract_evt);
-              console.log(decoded);
+              console.log("### decoded:", decoded);
+              console.log("### decoded.args[2]:",decoded.args[2].toHuman()?.toString());
             }
             console.log("### data.methhod:",event.data.method);
             if (event.data.method == "ExtrinsicFailed"){
