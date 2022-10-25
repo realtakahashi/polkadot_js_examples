@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@polkadot/api": "8.4.1",
-    "@polkadot/types":"8.4.1",
-    "@polkadot/api-contract": "8.4.1",
+    "@polkadot/api": "9.6.1",
+    "@polkadot/api-contract": "9.6.1",
     "@polkadot/extension-dapp": "^0.44.1",
     "@polkadot/extension-inject": "^0.44.1",
+    "@polkadot/types": "9.6.1",
+    "@polkadot/types-codec": "^9.6.1",
     "next": "12.2.2",
     "react": "18.2.0",
     "react-dom": "18.2.0"

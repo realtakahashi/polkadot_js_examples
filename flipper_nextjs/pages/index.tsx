@@ -4,9 +4,7 @@ import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { ContractPromise, CodePromise,Abi } from "@polkadot/api-contract";
 import abi from "../change_with_your_own_metadata.json";
 import contract_file from "../flipper.contract.json";
-import { numberToHex } from '@polkadot/util';
-import { Weight } from "@polkadot/types/interfaces";
-import { U64, u64, UInt } from "@polkadot/types";
+import { numberToHex,BN } from '@polkadot/util';
 
 const Home = () => {
   const [block, setBlock] = useState(0);
@@ -44,10 +42,7 @@ const Home = () => {
   };
 
   
-
- const gasLimit = 100000 * 1000000;
-  // const BN = require('bn.js');
-  // const gasLimit:u64 = new BN(parseInt('100000000000'),10).u64;
+  const gasLimitValue = 100000 * 1000000;
   const gasLimit_1 = numberToHex(21000);
   const storageDepositLimit = null;
 
@@ -81,20 +76,27 @@ const Home = () => {
     const api = await ApiPromise.create({ provider: wsProvider });
     setApi(api);
     const contractWasm = contract_file.source.wasm;
-    const contract = new CodePromise(api, abi, contractWasm);
+    const code = new CodePromise(api, abi, contractWasm);
     const initValue = false;
-    console.log("contract is :", contract);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
-    const tx = contract.tx.new({ gasLimit, storageDepositLimit }, initValue);
+    
+    console.log("### pass 1");
+
+    const tx = code.tx.new({ value:0, gasLimit:gasLimitValue , storageDepositLimit }, initValue);
+
+    console.log("### pass 2");
+
     let address = "";
     const unsub = await tx.signAndSend(
       actingAddress,
       { signer: injector.signer },
-      ({ contract, status }) => {
+      ({  contract , status }) => {
         if (status.isInBlock) {
+          console.log("### in block : contract:",contract);
           setResult("in a block");
         } else if (status.isFinalized) {
+          console.log("### finalized : contract:",contract);
           setResult("finalized");
           address = contract.address.toString();
           setContractAddress(address);
@@ -179,7 +181,7 @@ const Home = () => {
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
     const flip = await contract.tx.addTestData(
-      { value: 0, gasLimit: gasLimit },
+      { value: 0, gasLimit: gasLimitValue },
       actingAddress,
       0
     );
@@ -206,7 +208,7 @@ const Home = () => {
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
     const flip = await contract.tx.ownErrorTest(
-      { value: 0, gasLimit: gasLimit },
+      { value: 0, gasLimit: gasLimitValue },
       actingAddress,
       0
     );
