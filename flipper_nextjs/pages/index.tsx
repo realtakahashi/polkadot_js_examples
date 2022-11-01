@@ -31,13 +31,13 @@ const Home = () => {
   };
 
   const setup = async () => {
-    // const wsProvider = new WsProvider(blockchainUrl);
-    // const api = await ApiPromise.create({ provider: wsProvider });
-    // await api.rpc.chain.subscribeNewHeads((lastHeader) => {
-    //   setBlock(lastHeader.number.toNumber());
-    //   setLastBlockHash(lastHeader.hash.toString());
-    // });
-    // setApi(api);
+    const wsProvider = new WsProvider(blockchainUrl);
+    const api = await ApiPromise.create({ provider: wsProvider });
+    await api.rpc.chain.subscribeNewHeads((lastHeader) => {
+      setBlock(lastHeader.number.toNumber());
+      setLastBlockHash(lastHeader.hash.toString());
+    });
+    setApi(api);
     await extensionSetup();
   };
 
@@ -72,9 +72,9 @@ const Home = () => {
 
   const deployContract = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
-    setApi(api);
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    // setApi(api);
     const contractWasm = contract_file.source.wasm;
     const code = new CodePromise(api, abi, contractWasm);
     const initValue = false;
@@ -83,7 +83,10 @@ const Home = () => {
     
     console.log("### pass 1");
 
-    const tx = code.tx.new({ value:0, gasLimit:gasLimitValue , storageDepositLimit }, initValue);
+    const tx = code.tx.new({ value:0, gasLimit:gasLimitValue , storageDepositLimit }, 
+      initValue,
+      performingAccount.address
+      );
 
     console.log("### pass 2");
 
@@ -91,27 +94,51 @@ const Home = () => {
     const unsub = await tx.signAndSend(
       actingAddress,
       { signer: injector.signer },
-      ({  contract , status }) => {
+      ({  contract , status, events = [] }) => {
         if (status.isInBlock) {
           console.log("### in block : contract:",contract);
           setResult("in a block");
         } else if (status.isFinalized) {
+          events.forEach(({ event: { data } }) => {
+            console.log("### data.methhod:", data.method);
+            if (String(data.method) == "ExtrinsicFailed") {
+              console.log("### check ExtrinsicFailed");
+              alert("Transaction Failed.");
+            }
+          });
           console.log("### finalized : contract:",contract);
           setResult("finalized");
           address = contract.address.toString();
           setContractAddress(address);
-          api.disconnect();
+          //api.disconnect();
           unsub();
         }
       }
     );
   };
 
-  const getFlipValue = async () => {
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
+  const getFlipValueOnlyOwner = async () => {
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
     const contract = new ContractPromise(api, abi, contractAddress);
-    setApi(api);
+    //setApi(api);
+    const { gasConsumed, result, output } = await contract.query.getOnlyOwner(
+      actingAddress,
+      { value: 0, gasLimit: -1 }
+    );
+    setGasConsumed(gasConsumed.toHuman());
+    setResult(JSON.stringify(result.toHuman()));
+    if (output !== undefined && output !== null) {
+      setOutcome(output.toHuman()?.toString() ?? "");
+    }
+    //api.disconnect();
+  };
+
+  const getFlipValue = async () => {
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    const contract = new ContractPromise(api, abi, contractAddress);
+    //setApi(api);
     const { gasConsumed, result, output } = await contract.query.get(
       actingAddress,
       { value: 0, gasLimit: -1 }
@@ -121,51 +148,42 @@ const Home = () => {
     if (output !== undefined && output !== null) {
       setOutcome(output.toHuman()?.toString() ?? "");
     }
-    api.disconnect();
+    //api.disconnect();
   };
-
-  // const subscribeAccount =async () => {
-  //   const {web3AccountsSubscribe, web3Enable} = await import("@polkadot/extension-dapp");
-  //   // this call fires up the authorization popup
-  //   const extensions = await web3Enable('my cool dapp');
-  //   if (extensions.length === 0) {
-  //       // no extension installed, or the user did not accept the authorization
-  //       // in this case we should inform the use and give a link to the extension
-  //       return;
-  //   }
-  //   // we are now informed that the user has at least one extension and that we
-  //   // will be able to show and use accounts
-  //   let unsubscribe; // this is the function of type `() => void` that should be called to unsubscribe
-
-  //   // we subscribe to any account change and log the new list.
-  //   // note that `web3AccountsSubscribe` returns the function to unsubscribe
-  //   unsubscribe = await web3AccountsSubscribe(( injectedAccounts ) => {
-  //       injectedAccounts.map(( account ) => {
-  //           console.log(account.address);
-  //       })
-  //   });
-  //   // don't forget to unsubscribe when needed, e.g when unmounting a component
-  //   unsubscribe && unsubscribe();
-  // }
 
   const changeFlipValue = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
-    setApi(api);
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    // setApi(api);
 
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
-    const flip = await contract.tx.flip({ value: 0, gasLimit: -1 });
+
+    const { gasRequired, result, output } = await contract.query.flip(
+      actingAddress,
+      { value: 0, gasLimit: -1 }
+    );
+
+    console.log("### gasRequired:",gasRequired.toHuman().toString());
+
+    const flip = await contract.tx.flip({ value: 0, gasLimit: gasRequired });
     if (injector !== undefined) {
-      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
-        if (result.status.isInBlock) {
+      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ( { status, events = [] } ) => {
+        if (status.isInBlock) {
           setResult("in a block");
-        } else if (result.status.isFinalized) {
+        } else if (status.isFinalized) {
           setResult("finalized");
+          events.forEach(({ event: { data } }) => {
+            console.log("### data.methhod:", data.method);
+            if (String(data.method) == "ExtrinsicFailed") {
+              console.log("### check ExtrinsicFailed");
+              alert("Transaction Failed.");
+            }
+          });
           unsub();
-          api.disconnect();
+          //api.disconnect();
         }
       });
     }
@@ -173,9 +191,9 @@ const Home = () => {
 
   const add_test_data = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
-    setApi(api);
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    // setApi(api);
 
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
@@ -186,13 +204,21 @@ const Home = () => {
       0
     );
     if (injector !== undefined) {
-      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, (result) => {
-        if (result.status.isInBlock) {
+      const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ( { status, events = [] }) => {
+        if (status.isInBlock) {
           setResult("in a block");
-        } else if (result.status.isFinalized) {
+        } else if (status.isFinalized) {
           setResult("finalized");
+          events.forEach(({ event: { data } }) => {
+            console.log("### data.methhod:", data.method);
+            if (String(data.method) == "ExtrinsicFailed") {
+              console.log("### check ExtrinsicFailed");
+              alert("Transaction Failed.");
+            }
+          });
+
           unsub();
-          api.disconnect();
+          //api.disconnect();
         }
       });
     }
@@ -200,9 +226,9 @@ const Home = () => {
 
   const own_error_test = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    const wsProvider = new WsProvider(blockchainUrl);
-    const api = await ApiPromise.create({ provider: wsProvider });
-    setApi(api);
+    // const wsProvider = new WsProvider(blockchainUrl);
+    // const api = await ApiPromise.create({ provider: wsProvider });
+    // setApi(api);
 
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
@@ -216,14 +242,6 @@ const Home = () => {
       const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ({ events = [], status } ) => {
         if (status.isInBlock) {
           setResult("in a block");
-          // events.forEach(({ event}) => {
-          //   if (api.events.contracts.ContractEmitted.is(event)) {
-          //     console.log("### event.data:",event.data);
-          //     const [account_id, contract_evt] = event.data;
-          //     const decoded = new Abi(abi).decodeEvent(contract_evt);
-          //     console.log("### decoded:",decoded);
-          //   }
-          // });
         } else if (status.isFinalized) {
           setResult("finalized");
           events.forEach(({ event}) => {
@@ -240,7 +258,7 @@ const Home = () => {
             }
           });
           unsub();
-          api.disconnect();
+          //api.disconnect();
         }
         //console.log("###result: ",status);
       });
@@ -353,6 +371,18 @@ const Home = () => {
         >
           {api && contractAddress
             ? "Get flip value!"
+            : "Couldn't load API or contract address is invalid, please see logs in console."}
+        </button>
+        <br />
+        <br />
+        <br />
+        <button
+          className="bg-green-900 hover:bg-green-800 text-white rounded px-4 py-2"
+          disabled={!api || !contractAddress}
+          onClick={getFlipValueOnlyOwner}
+        >
+          {api && contractAddress
+            ? "Get flip value! (Only Owner)"
             : "Couldn't load API or contract address is invalid, please see logs in console."}
         </button>
         <br />

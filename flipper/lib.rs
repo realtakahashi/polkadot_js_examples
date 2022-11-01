@@ -52,25 +52,19 @@ mod flipper {
         value: bool,
         token_list_for_id: Mapping<u128, TokenInfo>,
         next_id: u128,
+        owner: AccountId,
     }
 
     impl Flipper {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
+        pub fn new(init_value: bool, owner:AccountId) -> Self {
             Self {
                 value: init_value,
                 token_list_for_id: Mapping::default(),
                 next_id: 0,
+                owner: owner,
             }
-        }
-
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        #[ink(constructor)]
-        pub fn default() -> Self {
-            Self::new(Default::default())
         }
 
         /// A message that can be called on instantiated contracts.
@@ -85,6 +79,15 @@ mod flipper {
         #[ink(message)]
         pub fn get(&self) -> bool {
             self.value
+        }
+
+        #[ink(message)]
+        pub fn get_only_owner(&self) -> Option<bool> {
+            let caller = self.env().caller();
+            if caller != self.owner {
+                return None;
+            }
+            Some(self.value)
         }
 
         #[ink(message)]
