@@ -33,10 +33,10 @@ const Home = () => {
   const setup = async () => {
     const wsProvider = new WsProvider(blockchainUrl);
     const api = await ApiPromise.create({ provider: wsProvider });
-    await api.rpc.chain.subscribeNewHeads((lastHeader) => {
-      setBlock(lastHeader.number.toNumber());
-      setLastBlockHash(lastHeader.hash.toString());
-    });
+    // await api.rpc.chain.subscribeNewHeads((lastHeader) => {
+    //   setBlock(lastHeader.number.toNumber());
+    //   setLastBlockHash(lastHeader.hash.toString());
+    // });
     setApi(api);
     await extensionSetup();
   };
@@ -83,7 +83,12 @@ const Home = () => {
     
     console.log("### pass 1");
 
-    const tx = code.tx.new({ value:0, gasLimit:gasLimitValue , storageDepositLimit }, 
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+
+    const tx = code.tx.new({ value:0, gasLimit:gasLimit , storageDepositLimit }, 
       initValue,
       performingAccount.address
       );
@@ -122,9 +127,15 @@ const Home = () => {
     // const api = await ApiPromise.create({ provider: wsProvider });
     const contract = new ContractPromise(api, abi, contractAddress);
     //setApi(api);
+
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+
     const { gasConsumed, result, output } = await contract.query.getOnlyOwner(
       actingAddress,
-      { value: 0, gasLimit: -1 }
+      { value: 0, gasLimit: gasLimit }
     );
     setGasConsumed(gasConsumed.toHuman());
     setResult(JSON.stringify(result.toHuman()));
@@ -139,13 +150,22 @@ const Home = () => {
     // const api = await ApiPromise.create({ provider: wsProvider });
     const contract = new ContractPromise(api, abi, contractAddress);
     //setApi(api);
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+
     const { gasConsumed, result, output } = await contract.query.get(
       actingAddress,
-      { value: 0, gasLimit: -1 }
+      { value: 0, gasLimit: gasLimit, storageDepositLimit }
     );
-    setGasConsumed(gasConsumed.toHuman());
-    setResult(JSON.stringify(result.toHuman()));
+      console.log("### gasConsumed:",gasConsumed.toHuman().toString());
+      console.log("### result:",result.toHuman());
+
+    // setGasConsumed(gasConsumed.toHuman());
+    // setResult(JSON.stringify(result.toHuman()));
     if (output !== undefined && output !== null) {
+      console.log("### output:",output.toHuman()?.toString());
       setOutcome(output.toHuman()?.toString() ?? "");
     }
     //api.disconnect();
@@ -157,18 +177,25 @@ const Home = () => {
     // const api = await ApiPromise.create({ provider: wsProvider });
     // setApi(api);
 
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
 
-    const { gasRequired, result, output } = await contract.query.flip(
+    const { gasRequired, gasConsumed ,result, output } = await contract.query.flip(
       actingAddress,
-      { value: 0, gasLimit: -1 }
+      { value: 0, gasLimit: gasLimit,storageDepositLimit },
+      
     );
 
     console.log("### gasRequired:",gasRequired.toHuman().toString());
+    console.log("### gasConsumed:",gasConsumed.toHuman().toString());
 
-    const flip = await contract.tx.flip({ value: 0, gasLimit: gasRequired });
+    const flip = await contract.tx.flip({ value: 0, gasLimit: gasLimit,storageDepositLimit });
     if (injector !== undefined) {
       const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ( { status, events = [] } ) => {
         if (status.isInBlock) {

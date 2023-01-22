@@ -1,8 +1,8 @@
 {
   "source": {
-    "hash": "0xc370805370e9c406c332084088da0e9c4f1d58ad08fd67e3c602808ab3c75c97",
+    "hash": "0xc78be14a024642ac6431353177a0c22c7bf3f92697f58889ef9734e8bd3ed2f2",
     "language": "ink! 3.3.1",
-    "compiler": "rustc 1.63.0-nightly"
+    "compiler": "rustc 1.68.0-nightly"
   },
   "contract": {
     "name": "flipper",
