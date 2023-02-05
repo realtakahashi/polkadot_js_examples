@@ -7,6 +7,7 @@ mod flipper {
     use ink_prelude::{vec, vec::Vec};
     use ink_storage::traits::StorageLayout;
     use ink_storage::traits::{PackedLayout, SpreadLayout};
+    use openbrush::contracts::ownable::OwnableError;
     use openbrush::{storage::Mapping, traits::Storage};
 
     #[derive(
@@ -31,6 +32,7 @@ mod flipper {
     pub enum OwnErrors {
         /// The Token Does Not Exists.
         OwnErrorIsOccured,
+        Custom(String),
     }
 
     #[ink(event)]
@@ -122,7 +124,8 @@ mod flipper {
                     is_transaction_succeed: false,
                     message: "error is occurd.".to_string(),
                 });
-                return Err(OwnErrors::OwnErrorIsOccured);
+                // return Err(OwnErrors::OwnErrorIsOccured);
+                return Err(OwnErrors::Custom("ThisIsTest".to_string()));
             }
             self.token_list_for_id.insert(
                 &self.next_id,

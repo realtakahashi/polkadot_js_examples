@@ -5,6 +5,7 @@ import { ContractPromise, CodePromise,Abi } from "@polkadot/api-contract";
 import abi from "../change_with_your_own_metadata.json";
 import contract_file from "../flipper.contract.json";
 import { numberToHex,BN } from '@polkadot/util';
+import { options } from '@astar-network/astar-api';
 
 const Home = () => {
   const [block, setBlock] = useState(0);
@@ -33,6 +34,8 @@ const Home = () => {
   const setup = async () => {
     const wsProvider = new WsProvider(blockchainUrl);
     const api = await ApiPromise.create({ provider: wsProvider });
+//		const api = new ApiPromise(options({ wsProvider }))
+
     // await api.rpc.chain.subscribeNewHeads((lastHeader) => {
     //   setBlock(lastHeader.number.toNumber());
     //   setLastBlockHash(lastHeader.hash.toString());
@@ -132,7 +135,7 @@ const Home = () => {
       refTime: new BN("10000000000"),
       proofSize: new BN("10000000000"),
     });
-
+  
     const { gasConsumed, result, output } = await contract.query.getOnlyOwner(
       actingAddress,
       { value: 0, gasLimit: gasLimit }
@@ -146,15 +149,13 @@ const Home = () => {
   };
 
   const getFlipValue = async () => {
-    // const wsProvider = new WsProvider(blockchainUrl);
-    // const api = await ApiPromise.create({ provider: wsProvider });
     const contract = new ContractPromise(api, abi, contractAddress);
-    //setApi(api);
+
     const gasLimit: any = api.registry.createType("WeightV2", {
       refTime: new BN("10000000000"),
       proofSize: new BN("10000000000"),
     });
-
+  
     const { gasConsumed, result, output } = await contract.query.get(
       actingAddress,
       { value: 0, gasLimit: gasLimit, storageDepositLimit }
@@ -173,19 +174,16 @@ const Home = () => {
 
   const changeFlipValue = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    // const wsProvider = new WsProvider(blockchainUrl);
-    // const api = await ApiPromise.create({ provider: wsProvider });
-    // setApi(api);
-
-    const gasLimit: any = api.registry.createType("WeightV2", {
-      refTime: new BN("10000000000"),
-      proofSize: new BN("10000000000"),
-    });
 
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
 
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+  
     const { gasRequired, gasConsumed ,result, output } = await contract.query.flip(
       actingAddress,
       { value: 0, gasLimit: gasLimit,storageDepositLimit },
@@ -195,7 +193,7 @@ const Home = () => {
     console.log("### gasRequired:",gasRequired.toHuman().toString());
     console.log("### gasConsumed:",gasConsumed.toHuman().toString());
 
-    const flip = await contract.tx.flip({ value: 0, gasLimit: gasLimit,storageDepositLimit });
+    const flip = await contract.tx.flip({ value: 0, gasLimit: gasRequired,storageDepositLimit });
     if (injector !== undefined) {
       const unsub = await flip.signAndSend(actingAddress, { signer: injector.signer }, ( { status, events = [] } ) => {
         if (status.isInBlock) {
@@ -225,6 +223,18 @@ const Home = () => {
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
+
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });  
+
+    const { gasRequired, gasConsumed ,result, output } = await contract.query.addTestData(
+      { value: 0, gasLimit: gasLimit,storageDepositLimit },
+      actingAddress,
+      0
+    );
+
     const flip = await contract.tx.addTestData(
       { value: 0, gasLimit: gasLimitValue },
       actingAddress,
@@ -253,15 +263,40 @@ const Home = () => {
 
   const own_error_test = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
-    // const wsProvider = new WsProvider(blockchainUrl);
-    // const api = await ApiPromise.create({ provider: wsProvider });
-    // setApi(api);
 
     const contract = new ContractPromise(api, abi, contractAddress);
     const performingAccount = accounts[0];
     const injector = await web3FromSource(performingAccount.meta.source);
+
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });  
+
+    const { gasRequired, gasConsumed ,result, output } = await contract.query.ownErrorTest(
+      actingAddress,
+      { value: 0, gasLimit: gasLimit,storageDepositLimit },
+      actingAddress,
+      0      
+    );
+
+    console.log("### result of dry run ###" );
+    console.log("### output:", output?.toHuman());
+    console.log("### output?.toHuman()?.Err:", output?.toHuman()?.Err);
+    console.log("### result:", result.toHuman());
+
+   if ( output?.toHuman()?.Err.Custom == "ThisIsTest"){
+    alert("I can handle errors");
+    return;
+   }
+
+  //  if ( output?.toHuman()?.Err == "OwnErrorIsOccured"){
+  //   alert("I can handle errors");
+  //   return;
+  //  }
+
     const flip = await contract.tx.ownErrorTest(
-      { value: 0, gasLimit: gasLimitValue },
+      { value: 0, gasLimit: gasRequired },
       actingAddress,
       0
     );
@@ -294,9 +329,15 @@ const Home = () => {
 
   const get_test_data = async () => {
     const contract = new ContractPromise(api, abi, contractAddress);
+
+    const gasLimit: any = api.registry.createType("WeightV2", {
+      refTime: new BN("10000000000"),
+      proofSize: new BN("10000000000"),
+    });
+  
     const { gasConsumed, result, output } = await contract.query.getTestList(
       actingAddress,
-      { value: 0, gasLimit: -1 },
+      { value: 0, gasLimit: gasLimit },
       0
     );
     setGasConsumed(gasConsumed.toHuman());

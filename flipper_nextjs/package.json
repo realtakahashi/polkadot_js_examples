@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@astar-network/astar-api": "^0.1.13",
     "@polkadot/api": "^9.11.3",
     "@polkadot/api-contract": "^9.6.1",
     "@polkadot/extension-dapp": "^0.44.1",
