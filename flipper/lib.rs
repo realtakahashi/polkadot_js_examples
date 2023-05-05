@@ -3,15 +3,15 @@
 
 #[openbrush::contract]
 mod flipper {
-    use ink_prelude::string::{String, ToString};
-    use ink_prelude::{vec, vec::Vec};
-    use ink_storage::traits::StorageLayout;
-    use ink_storage::traits::{PackedLayout, SpreadLayout};
+    use ink::prelude::string::{String, ToString};
+    use ink::prelude::{vec, vec::Vec};
+    use ink::storage::traits::StorageLayout;
+//    use ink::storage::traits::{PackedLayout, SpreadLayout};
     use openbrush::contracts::ownable::OwnableError;
     use openbrush::{storage::Mapping, traits::Storage};
 
     #[derive(
-        Debug, PartialEq, Eq, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout,
+        Debug, PartialEq, Eq, scale::Encode, scale::Decode, Clone
     )]
     #[cfg_attr(feature = "std", derive(StorageLayout, scale_info::TypeInfo))]
     pub enum TokenType {
@@ -20,7 +20,7 @@ mod flipper {
         Psp34,
     }
 
-    #[derive(Debug, Clone, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, PartialEq)]
+    #[derive(Debug, Clone, scale::Encode, scale::Decode,PartialEq)]
     #[cfg_attr(feature = "std", derive(StorageLayout, scale_info::TypeInfo))]
     pub struct TokenInfo {
         token_type: TokenType,

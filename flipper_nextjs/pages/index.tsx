@@ -282,13 +282,15 @@ const Home = () => {
 
     console.log("### result of dry run ###" );
     console.log("### output:", output?.toHuman());
-    console.log("### output?.toHuman()?.Err:", output?.toHuman()?.Err);
+//    console.log("### output?.toHuman()?.OK.Err:", output?.toHuman()?.Ok.Err);
     console.log("### result:", result.toHuman());
 
-   if ( output?.toHuman()?.Err.Custom == "ThisIsTest"){
+   if (output?.toHuman()?.Ok.Err != undefined) {
+    if ( output?.toHuman()?.Ok.Err.Custom == "ThisIsTest"){
     alert("I can handle errors");
     return;
    }
+  }
 
   //  if ( output?.toHuman()?.Err == "OwnErrorIsOccured"){
   //   alert("I can handle errors");
