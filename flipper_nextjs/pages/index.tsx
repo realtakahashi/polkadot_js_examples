@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { ApiPromise, Keyring, WsProvider } from "@polkadot/api";
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import { ContractPromise, CodePromise,Abi } from "@polkadot/api-contract";
-import abi from "../change_with_your_own_metadata.json";
+import abi from "../../flipper/target/ink/metadata.json";
 import contract_file from "../flipper.contract.json";
 import { numberToHex,BN } from '@polkadot/util';
-import { options } from '@astar-network/astar-api';
 
 const Home = () => {
   const [block, setBlock] = useState(0);
@@ -34,12 +33,6 @@ const Home = () => {
   const setup = async () => {
     const wsProvider = new WsProvider(blockchainUrl);
     const api = await ApiPromise.create({ provider: wsProvider });
-//		const api = new ApiPromise(options({ wsProvider }))
-
-    // await api.rpc.chain.subscribeNewHeads((lastHeader) => {
-    //   setBlock(lastHeader.number.toNumber());
-    //   setLastBlockHash(lastHeader.hash.toString());
-    // });
     setApi(api);
     await extensionSetup();
   };
@@ -49,29 +42,6 @@ const Home = () => {
   const gasLimit_1 = numberToHex(21000);
   const storageDepositLimit = null;
 
-  // const deployContract = async () => {
-  //   const { web3FromSource } = await import("@polkadot/extension-dapp");
-  //   const keyring = new Keyring({ type: 'sr25519' });
-  //   const alicePair = keyring.addFromUri('//Alice', { name: 'Alice default' });
-  //   const caller = keyring.addFromAddress("actingAddress");
-  //   const wsProvider = new WsProvider(blockchainUrl);
-  //   const api = await ApiPromise.create({ provider: wsProvider });
-  //   setApi(api);
-  //   const contractWasm = contract_file.source.wasm;
-  //   const code = new CodePromise(api, abi, contractWasm);
-  //   const initValue = false;
-  //   console.log("contract is :", code);
-  //   const performingAccount = accounts[0];
-  //   const injector = await web3FromSource(performingAccount.meta.source);
-  //   const tx = code.tx.new({ gasLimit, storageDepositLimit }, initValue)
-  //   let address;
-  //   const unsub = await tx.signAndSend(alicePair, ({ contract, status }) => {
-  //     if (status.isInBlock || status.isFinalized) {
-  //       address = contract.address.toString();
-  //       unsub();
-  //     }
-  //   });
-  // };
 
   const deployContract = async () => {
     const { web3FromSource } = await import("@polkadot/extension-dapp");
@@ -163,11 +133,9 @@ const Home = () => {
       console.log("### gasConsumed:",gasConsumed.toHuman().toString());
       console.log("### result:",result.toHuman());
 
-    // setGasConsumed(gasConsumed.toHuman());
-    // setResult(JSON.stringify(result.toHuman()));
     if (output !== undefined && output !== null) {
-      console.log("### output:",output.toHuman()?.toString());
-      setOutcome(output.toHuman()?.toString() ?? "");
+      console.log("### output:",output.toHuman().Ok);
+      setOutcome(output.toHuman().Ok.toString());
     }
     //api.disconnect();
   };
@@ -255,7 +223,7 @@ const Home = () => {
           });
 
           unsub();
-          //api.disconnect();
+          
         }
       });
     }
@@ -282,7 +250,6 @@ const Home = () => {
 
     console.log("### result of dry run ###" );
     console.log("### output:", output?.toHuman());
-//    console.log("### output?.toHuman()?.OK.Err:", output?.toHuman()?.Ok.Err);
     console.log("### result:", result.toHuman());
 
    if (output?.toHuman()?.Ok.Err != undefined) {
@@ -291,11 +258,6 @@ const Home = () => {
     return;
    }
   }
-
-  //  if ( output?.toHuman()?.Err == "OwnErrorIsOccured"){
-  //   alert("I can handle errors");
-  //   return;
-  //  }
 
     const flip = await contract.tx.ownErrorTest(
       { value: 0, gasLimit: gasRequired },
@@ -370,14 +332,17 @@ const Home = () => {
     }
   };
 
-  useEffect(() => {
-    setup();
-    //subscribeAccount();
-  });
-
   return (
     <>
       <div className="text-center">
+      <button
+          className="bg-green-900 hover:bg-green-800 text-white rounded px-4 py-2"
+          onClick={setup}
+        >
+          Setup Account
+        </button>
+        <div className="p-5"></div>        
+
         <div className="p-3 m-3 text-3xl">flipper test</div>
         <div className="p-3 m-3">Block: {block}</div>
         <div className="p-3 m-3">Blockchain URL: {blockchainUrl}</div>
@@ -423,14 +388,6 @@ const Home = () => {
           </button>
           <label> contract address is : {contractAddress}</label>
         </div>
-        {/* <div className="p-3 m-3">
-          Input contract address (from your canvas UI after you instantiate it):{" "}
-          {contractAddress}
-        </div>
-        <input
-          className="p-2 m-2 border-2"
-          onChange={(event) => setContractAddress(event.target.value)}
-        /> */}
         <br />
         <br />
         <br />

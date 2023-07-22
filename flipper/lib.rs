@@ -6,7 +6,6 @@ mod flipper {
     use ink::prelude::string::{String, ToString};
     use ink::prelude::{vec, vec::Vec};
     use ink::storage::traits::StorageLayout;
-//    use ink::storage::traits::{PackedLayout, SpreadLayout};
     use openbrush::contracts::ownable::OwnableError;
     use openbrush::{storage::Mapping, traits::Storage};
 
